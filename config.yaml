@@ -1,0 +1,43 @@
+
+
+#ランダムのシード値
+seed: 1000
+
+# gpu処理高速化。再現性なくなるっぽい。  true|false
+enable_cudnn_benchmark: true
+
+#データセットのパス
+dataroot: 'E:\Datasets\ffhq_thumbnail\thumbnails128x128'
+
+#generatorの最終解像度
+target_resolution: 128
+start_resolution: 4
+
+latent_size: 512
+
+# learning rate
+lr: 0.001
+
+# 15000 k 
+# 学習に使う枚数
+total_k_images: 15000
+
+# TODO: 800Kにする？
+# アルファが1になった時から次の層を挿入するまでに必要な枚数   x1000枚
+phase_training_k_images: 600
+# 新しい層を挿入するときに、アルファを0=>1に増やしていくために必要な枚数 x1000枚
+phase_fadein_k_images: 600
+
+#バッチサイズの情報
+#キーがバッチサイズ2^x 、値がバッチサイズ
+batch_size_info:
+  4: 128
+  8: 128
+  16: 128
+  32: 64
+  64: 32
+  128: 16
+  256: 8
+  512: 8
+
+

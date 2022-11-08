@@ -1,0 +1,8 @@
+data/
+onnx/
+old/
+result/
+
+__pycache__/
+
+todo.md
