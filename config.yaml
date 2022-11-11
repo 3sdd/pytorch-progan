@@ -6,11 +6,19 @@ seed: 1000
 # gpu処理高速化。再現性なくなるっぽい。  true|false
 enable_cudnn_benchmark: true
 
+# 学習を再開するかどうか
+resume: false
+resume_path: "result/checkpoints/checkpoint.pt"
+
+
+# チェックポイントのパス
+checkpoint_path: "result/checkpoints/checkpoint.pt"
+
 #データセットのパス
-dataroot: 'E:\Datasets\ffhq_thumbnail\thumbnails128x128'
+dataroot: 'E:\Datasets\GetchuAnimeFaceDataset\data'
 
 #generatorの最終解像度
-target_resolution: 128
+target_resolution: 64
 start_resolution: 4
 
 latent_size: 512

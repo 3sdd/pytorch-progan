@@ -134,8 +134,15 @@ def train():
     start_resolution=config['start_resolution']
     dataroot=config['dataroot']
     batch_size_info=config['batch_size_info'] 
+    resume=config['resume']
+    checkpoint_path=config['checkpoint_path'] 
+    
 
-
+    num_imgs_prev_saved=0
+    # 学習に使った枚数
+    current_num_imgs=0
+    phase_num_imgs=0
+    
     # TODO: 　target_resolution=4 start_resolution=4の時にエラーとなる。直す
     # resolution => bs=? speed   1epochのtime
     # 4 => bs=64   900it/s
@@ -159,11 +166,29 @@ def train():
     # 5x5のグリッドの画像を生成したいので5*5
     fixed_noise = torch.randn(5*5, latent_size, device=device)
 
+    if resume:
+        checkpoint=torch.load(config['resume_path'])
+        start_resolution=checkpoint['current_resolution']
+
     net_g=Generator(resolution=target_resolution,start_resolution=start_resolution)
-    net_g_smooth=copy.deepcopy(net_g)
-    net_g_smooth.eval()
     net_d=Discriminator(resolution=target_resolution,label_size=label_size,start_resolution=start_resolution)
+    net_g_smooth=copy.deepcopy(net_g)
     current_resolution=start_resolution
+
+    if resume:
+
+        net_g.load_state_dict(checkpoint['net_g_state_dict'])
+        net_d.load_state_dict(checkpoint['net_d_state_dict'])
+        net_g_smooth.load_state_dict(checkpoint['net_g_smooth_state_dict'])
+
+
+        fixed_noise=checkpoint['fixed_noise']
+        total_k_images=checkpoint['total_k_images']
+
+        # 学習に使った枚数
+        current_num_imgs=checkpoint['current_num_imgs']
+        phase_num_imgs=checkpoint['phase_num_imgs']
+
 
     net_g=net_g.to(device)
     net_g_smooth=net_g_smooth.to(device)
@@ -175,6 +200,7 @@ def train():
 
     net_g.train()
     net_d.train()
+    net_g_smooth.eval()
 
     print("current res:",net_d.current_resolution)
     # バッチサイズ設定
@@ -183,6 +209,10 @@ def train():
 
     optimizer_g=optim.Adam(net_g.parameters(),lr=lr,betas=(0.0,0.99),eps=1e-8)
     optimizer_d=optim.Adam(net_d.parameters(),lr=lr,betas=(0.0,0.99),eps=1e-8)
+
+    if resume:
+        optimizer_g.load_state_dict(checkpoint['optimizer_g_state_dict'])
+        optimizer_d.load_state_dict(checkpoint['optimizer_d_state_dict'])
 
 
 
@@ -209,16 +239,16 @@ def train():
         # 4x4の時は前のレイヤーがないので、そのまま学習する
         net_d.alpha=1
         net_g.alpha=1
+    if resume:
+        net_d.alpha=checkpoint['alpha']
+        net_g.alpha=checkpoint['alpha']
 
     # tensorboard
     jst = timezone(timedelta(hours=+9))
     writer=SummaryWriter(log_dir=f"./result/runs/{datetime.now(jst).isoformat().replace(':','_',3)}")
 
     print("pggan学習開始")
-    num_imgs_prev_saved=0
-    # 学習に使った枚数
-    current_num_imgs=0
-    phase_num_imgs=0
+
     pbar=tqdm(total=(phase_fadein_k_images+phase_training_k_images)*1000,position=0,leave=True)
     # pbar.set_description(f"[Epoch {epoch}/{num_epochs}][resolution={net_g.current_resolution}]")
     pbar.set_description(f"[resolution={net_d.current_resolution}]")
@@ -236,8 +266,6 @@ def train():
         except StopIteration:
             iter_dataloader = iter(dataloader)
             img,labels=next(iter_dataloader)
-        
-        # img,labels=next(iter_dataloader)
 
         # alpha更新
         net_d.update_alpha()
@@ -257,10 +285,7 @@ def train():
 
         # バッチサイズ
         bs=img.size(0)
-
         img=img.to(device)
-        # labels=labels.to(device)
-
 
 
         real_img=img
@@ -397,7 +422,7 @@ def train():
                 "phase_num_imgs":phase_num_imgs,
                 "total_k_images":total_k_images,
                 "fixed_noise":fixed_noise,
-            },f"result/checkpoints/checkpoint.pt")
+            },checkpoint_path)
 
             # 層を増やす
             print(f"[grow]")
