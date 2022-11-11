@@ -7,7 +7,7 @@ class PixelNorm(nn.Module):
         super().__init__()
 
     def forward(self,x,epsilon=1e-8):
-        # ? (batch_size,c,w,h)
+        #  (batch_size,c,w,h)
         out=x*torch.rsqrt(torch.mean(torch.square(x),dim=1,keepdim=True)+epsilon)
         return out
 
@@ -18,7 +18,7 @@ class MinibatchStd(nn.Module):
         # 注意: batch_sizeをgroup_sizeで割り切れる必要がある
 
     def forward(self,x:torch.Tensor):
-
+        assert x.size(0) % self.group_size == 0
         # batch sizeをgroup_sizeで割り切れる必要がある 
         # TODO: assertつける？
         group_size= min(self.group_size,x.size(0))
@@ -102,11 +102,7 @@ class EqualizedLinear(nn.Module):
         self.wscale=std
 
     def forward(self,x):
-
-
         if self.use_wscale:
-
-
             # self.linear.register_parameter('weight',new_weight)
 
             # w=self.linear.weight * wscale
@@ -114,7 +110,6 @@ class EqualizedLinear(nn.Module):
             out=self.linear(x*self.wscale)+self.bias
             # out = torch.nn.functional.linear(x,w,self.bias)
             # out=self.linear(x)
-
         else:
             # out =self.linear(x)
             out=None
@@ -180,10 +175,8 @@ class EqualizedConv2d(nn.Module):
         self.wscale=std
 
     def forward(self,x):
-
         # 
         if self.use_wscale:
-
 
             # w=self.weight * self.wscale
             # new_weight=self.conv2d.weight.clone()
